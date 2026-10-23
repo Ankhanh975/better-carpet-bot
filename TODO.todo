@@ -1,0 +1,14 @@
+Features:
+    ✔ Make all players be offline when joined as bots, but when joined online for the first time, switch to online, making then never again be spawnable by /bot and resetting all of their player data @done(26-07-12 00:51)
+    ✔ `/bot <name> attack continuous` - attack untill /bot <name> stop @done(26-07-12 00:51)
+    ✔ `/bot <name> attack interval <ticks>` - attack every <ticks> ticks until /bot <name> stop @done(26-07-12 00:51)
+    ✔ same with `use` ^ @done(26-07-12 00:51)
+
+Fixes:
+    ✔ Fix `/bot inventory` to only work in 10 block reach of bot, and whitelist armor slots to only armor (currently able to put anything in armor slots) Also add a colored glass pane that is named what the slot is for, make sure its not takable (and dissapears on user put something there) @done(26-07-12 00:51)
+    - Fix skin setting being inconsistently applied with using refactor, maybe switch to our own implementation?
+
+Repo and Codebase:
+    ✔ Unhardcode java path in gradle.properties @done(26-07-12 00:51)
+    ✔ write a readme @done(26-07-12 00:50)
+    ✔ install spotless @done(26-07-12 00:50)

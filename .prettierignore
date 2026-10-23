@@ -1,0 +1,6 @@
+build/
+dist/
+**/*.java
+**/*.gradle
+gradle.properties
+**/*.md

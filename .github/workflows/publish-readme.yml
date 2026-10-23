@@ -1,0 +1,27 @@
+name: Publish README to Modrinth
+
+on:
+    push:
+        branches: [main]
+        paths: [README.md]
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Push description to Modrinth
+              env:
+                  MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+                  MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+              run: |
+                  BODY=$(cat README.md)
+                  PAYLOAD=$(jq -n --arg body "$BODY" '{"body": $body}')
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+                      "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}" \
+                      -H "Authorization: ${MODRINTH_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d "$PAYLOAD")
+                  echo "Modrinth response: $STATUS"
+                  [[ "$STATUS" == "204" ]] || (echo "Failed to update Modrinth description" && exit 1)

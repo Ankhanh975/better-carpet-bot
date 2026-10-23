@@ -1,0 +1,24 @@
+{
+    "schemaVersion": 1,
+    "id": "better-carpet-bots",
+    "version": "${version}",
+    "name": "Better Carpet Bots",
+    "description": "Bot management extension for Carpet mod",
+    "authors": ["Matej Stastny"],
+    "license": "MIT",
+    "icon": "icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": ["matejstastny.bettercarpetbots.CarpetBotsMod"],
+        "modmenu": ["matejstastny.bettercarpetbots.client.ModMenuIntegration"]
+    },
+    "mixins": [],
+    "depends": {
+        "minecraft": "${mcversions}",
+        "fabricloader": ">=0.18.4",
+        "carpet": "*"
+    },
+    "suggests": {
+        "modmenu": "*"
+    }
+}

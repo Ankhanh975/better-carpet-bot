@@ -1,0 +1,45 @@
+name: Build
+
+on:
+    push:
+        branches: ['**']
+        paths:
+            - "src/**"
+            - "gradle/**"
+            - "gradle.properties"
+            - "settings.gradle.kts"
+            - "build.gradle"
+            - "CHANGELOG.md"
+
+concurrency:
+    group: build-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 25
+                  cache: gradle
+
+            - name: Gradle build
+              run: ./gradlew build --no-daemon
+
+    spotless:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 25
+                  cache: gradle
+
+            - name: Check formatting
+              run: ./gradlew spotlessCheck --no-daemon

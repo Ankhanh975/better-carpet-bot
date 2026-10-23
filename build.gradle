@@ -1,0 +1,87 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.+'
+    id 'maven-publish'
+    id 'com.modrinth.minotaur' version '2.+'
+    id 'com.diffplug.spotless' version '7.+'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    implementation fabricApi.module('fabric-networking-api-v1', project.fabric_api_version)
+    implementation "maven.modrinth:carpet:${project.carpet_version}"
+
+    compileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "mcversions": project.modjson_compatible_versions
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${base.archivesName.get()}" }
+    }
+}
+
+spotless {
+    java {
+        palantirJavaFormat('2.71.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = System.getenv("MODRINTH_PROJECT_ID") ?: project.archives_base_name
+    versionNumber = project.mod_version
+    versionName = "v${project.mod_version} for MC ${project.minecraft_version}"
+    versionType = "release"
+    uploadFile = jar
+    additionalFiles = [sourcesJar]
+    gameVersions = [project.minecraft_version]
+    loaders = ["fabric"]
+    changelog = System.getenv("RELEASE_NOTES") ?: ""
+    dependencies {
+        required.project "carpet"
+    }
+}
