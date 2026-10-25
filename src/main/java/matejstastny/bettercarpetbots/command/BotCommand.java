@@ -165,6 +165,7 @@ public class BotCommand {
                                 .executes(ctx ->
                                         action(ctx, EntityPlayerActionPack::stopAll, BotManager::stopBotActions)))
                         .then(literal("kill").executes(BotCommand::killBot))
+                        .then(literal("disconnect").executes(BotCommand::disconnectBot))
                         .then(literal("look")
                                 .then(literal("at").executes(BotCommand::lookAtCaller))
                                 .then(literal("north").executes(ctx -> action(ctx, ap -> ap.look(Direction.NORTH))))
@@ -209,11 +210,16 @@ public class BotCommand {
         }
 
         ServerPlayer executor = src.getPlayerOrException();
-        Vec3 pos = new Vec3(executor.getX(), executor.getY(), executor.getZ());
-        ServerLevel level = src.getLevel();
+        BotManager.BotState savedState = BotManager.getSavedBotState(name);
+        ServerLevel savedLevel = BotManager.getSavedBotLevel(server, savedState);
+        boolean restoring = savedState != null && savedLevel != null;
+        Vec3 pos = restoring
+                ? new Vec3(savedState.x, savedState.y, savedState.z)
+                : new Vec3(executor.getX(), executor.getY(), executor.getZ());
+        ServerLevel level = restoring ? savedLevel : src.getLevel();
         ResourceKey<Level> levelKey = level.dimension();
-        float yaw = executor.getYRot();
-        float pitch = executor.getXRot();
+        float yaw = restoring ? savedState.yaw : executor.getYRot();
+        float pitch = restoring ? savedState.pitch : executor.getXRot();
 
         boolean started =
                 EntityPlayerMPFake.createFake(name, server, pos, yaw, pitch, levelKey, GameType.SURVIVAL, false);
@@ -222,7 +228,7 @@ public class BotCommand {
             return 0;
         }
 
-        BotManager.setBotSpawnActions(server, name, attack, moveForward);
+        if (!restoring) BotManager.setBotSpawnActions(server, name, attack, moveForward);
         return 1;
     }
 
@@ -276,6 +282,19 @@ public class BotCommand {
         } else {
             bot.connection.disconnect(Component.literal("Removed by /bot kill"));
         }
+        return 1;
+    }
+
+    private static int disconnectBot(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer bot = getBot(ctx);
+        if (!(bot instanceof EntityPlayerMPFake fake)) throw NOT_A_BOT.create();
+        BotManager.disconnectBot(ctx.getSource().getServer(), fake);
+        ctx.getSource()
+                .sendSuccess(
+                        () -> Component.literal("Disconnected bot '" + bot.getScoreboardName()
+                                + "' while keeping its state. Use /bot spawn " + bot.getScoreboardName()
+                                + " to summon it."),
+                        false);
         return 1;
     }
 

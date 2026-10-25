@@ -30,7 +30,7 @@ public class CarpetBotsExtension implements CarpetExtension {
 
     @Override
     public String version() {
-        return "1.3.6";
+        return "1.3.7";
     }
 
     @Override

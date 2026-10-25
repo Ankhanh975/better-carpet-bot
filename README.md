@@ -48,6 +48,7 @@ If the named bot is offline, it is spawned at your position and the command runs
 | `dropstack` | Drop current hotbar item (full stack) |
 | `swaphands` | Swap main hand and off hand |
 | `inventory` | Open bot inventory (must be within 10 blocks) |
+| `disconnect` | Remove the bot while keeping its saved state for a later summon or world rejoin |
 | `kill` | Remove the bot from the server |
 
 ### `/bots <action>`
@@ -82,6 +83,8 @@ Bots that are online when you leave a world are saved and restored the next time
 - Bot positions are saved periodically while the world is running and again when the server closes.
 
 State is stored separately for each world in `<world save folder>/better-carpet-bots/bots.json`. For example, a Prism Launcher world named `My World` might store it at `minecraft/saves/My World/better-carpet-bots/bots.json`.
+
+Use `/bot <name> disconnect` to remove a bot while keeping its state. `/bot spawn <name>` summons it again at its saved position and resumes its saved actions. If the bot remains disconnected, it will also be restored when you rejoin the world.
 
 If a saved position is missing or shared by multiple bots, the bots are restored in distinct positions near the saved location (or near the joining player when no location was saved), with different orientations. Bots removed with `/bot <name> kill` or `/bots kill`, or bots that die, have their saved state deleted and are not restored.
 

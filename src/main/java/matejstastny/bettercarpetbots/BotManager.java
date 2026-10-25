@@ -231,7 +231,10 @@ public final class BotManager {
     }
 
     public static void scheduleBotRestore(MinecraftServer server, ServerPlayer joiningPlayer) {
-        if (botStates.isEmpty() || pendingRestoreServer == server || !restoreAttempts.isEmpty()) return;
+        if (botStates.isEmpty() || pendingRestoreServer == server) return;
+        // A player may leave and rejoin while the server stays open. Allow saved bots
+        // that were already attempted on the previous join to be restored again.
+        restoreAttempts.clear();
         pendingRestoreServer = server;
         pendingRestorePlayer = joiningPlayer;
         restoreDelayTicks = 20;
@@ -302,6 +305,28 @@ public final class BotManager {
         restoreAttempts.remove(name);
         botStates.remove(name);
         saveBotStates(server);
+    }
+
+    /** Removes a bot while retaining its last saved state for a later summon or world rejoin. */
+    public static void disconnectBot(MinecraftServer server, EntityPlayerMPFake bot) {
+        snapshotBot(bot);
+        restoreAttempts.remove(bot.getScoreboardName());
+        saveBotStates(server);
+        bot.kill(Component.literal("Disconnected by /bot disconnect"));
+    }
+
+    public static BotState getSavedBotState(String name) {
+        return botStates.get(name);
+    }
+
+    public static ServerLevel getSavedBotLevel(MinecraftServer server, BotState state) {
+        if (state == null) return null;
+        try {
+            ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, Identifier.parse(state.dimension));
+            return server.getLevel(dimension);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     public static void updateBotState(ServerPlayer bot, Consumer<BotState> update) {
