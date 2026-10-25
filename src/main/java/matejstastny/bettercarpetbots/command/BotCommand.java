@@ -36,16 +36,23 @@ public class BotCommand {
             new SimpleCommandExceptionType(Component.literal("Bot not found or not online."));
     private static final SimpleCommandExceptionType NOT_A_BOT =
             new SimpleCommandExceptionType(Component.literal("That player is not a bot."));
+    private static final SimpleCommandExceptionType INVALID_SPAWN_FLAGS =
+            new SimpleCommandExceptionType(Component.literal("Spawn flags must be one or two digits, each 0 or 1."));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(literal("bot")
                 .requires(Commands.hasPermission(BotManager.getBotPermissionCheck()))
 
-                // /bot spawn [<name>]
+                // /bot spawn [<name> [<flags>]]
                 .then(literal("spawn")
-                        .executes(ctx -> spawnBot(ctx, null))
+                        .executes(ctx -> spawnBot(ctx, null, "00"))
                         .then(argument("name", StringArgumentType.word())
-                                .executes(ctx -> spawnBot(ctx, StringArgumentType.getString(ctx, "name")))))
+                                .executes(ctx -> spawnBot(ctx, StringArgumentType.getString(ctx, "name"), "00"))
+                                .then(argument("flags", StringArgumentType.word())
+                                        .executes(ctx -> spawnBot(
+                                                ctx,
+                                                StringArgumentType.getString(ctx, "name"),
+                                                StringArgumentType.getString(ctx, "flags"))))))
 
                 // /bot <name> <action>
                 .then(argument("botname", StringArgumentType.word())
@@ -159,6 +166,7 @@ public class BotCommand {
                                         action(ctx, EntityPlayerActionPack::stopAll, BotManager::stopBotActions)))
                         .then(literal("kill").executes(BotCommand::killBot))
                         .then(literal("look")
+                                .then(literal("at").executes(BotCommand::lookAtCaller))
                                 .then(literal("north").executes(ctx -> action(ctx, ap -> ap.look(Direction.NORTH))))
                                 .then(literal("south").executes(ctx -> action(ctx, ap -> ap.look(Direction.SOUTH))))
                                 .then(literal("east").executes(ctx -> action(ctx, ap -> ap.look(Direction.EAST))))
@@ -177,10 +185,13 @@ public class BotCommand {
 
     // --- Spawn ---
 
-    private static int spawnBot(CommandContext<CommandSourceStack> ctx, String rawName) throws CommandSyntaxException {
+    private static int spawnBot(CommandContext<CommandSourceStack> ctx, String rawName, String flags)
+            throws CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         MinecraftServer server = src.getServer();
-
+        if (!flags.matches("[01]{1,2}")) throw INVALID_SPAWN_FLAGS.create();
+        boolean attack = flags.charAt(0) == '1';
+        boolean moveForward = flags.length() > 1 && flags.charAt(1) == '1';
         String name = (rawName == null || rawName.isBlank()) ? BotManager.nextAutoName(server) : rawName;
 
         if (!isValidName(name)) {
@@ -201,18 +212,26 @@ public class BotCommand {
         Vec3 pos = new Vec3(executor.getX(), executor.getY(), executor.getZ());
         ServerLevel level = src.getLevel();
         ResourceKey<Level> levelKey = level.dimension();
-        double yaw = executor.getYRot();
+        float yaw = executor.getYRot();
+        float pitch = executor.getXRot();
 
-        boolean started = EntityPlayerMPFake.createFake(name, server, pos, yaw, 0, levelKey, GameType.SURVIVAL, false);
+        boolean started =
+                EntityPlayerMPFake.createFake(name, server, pos, yaw, pitch, levelKey, GameType.SURVIVAL, false);
         if (!started) {
             src.sendFailure(Component.literal("Failed to spawn bot '" + name + "'."));
             return 0;
         }
 
+        BotManager.setBotSpawnActions(server, name, attack, moveForward);
         return 1;
     }
 
     // --- Actions ---
+
+    private static int lookAtCaller(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer caller = ctx.getSource().getPlayerOrException();
+        return action(ctx, ap -> ap.look(caller.getYRot(), caller.getXRot()));
+    }
 
     @FunctionalInterface
     private interface ActionConsumer {

@@ -238,6 +238,15 @@ public final class BotManager {
     }
 
     public static void onServerTick(MinecraftServer server) {
+        // Fake players can remain in the player list briefly after reaching zero health,
+        // while the logout callback may run after the death state has already changed.
+        // Remove their restore entry before the periodic snapshot can write it back.
+        for (ServerPlayer bot : getActiveBots(server)) {
+            if (bot.isDeadOrDying() || bot.getHealth() <= 0.0F) {
+                forgetBot(server, bot);
+            }
+        }
+
         if (pendingRestoreServer == server && --restoreDelayTicks <= 0) {
             ServerPlayer joiningPlayer = pendingRestorePlayer;
             pendingRestoreServer = null;
@@ -263,7 +272,12 @@ public final class BotManager {
     }
 
     public static void onBotLoggedOut(MinecraftServer server, ServerPlayer player) {
-        if (!(player instanceof EntityPlayerMPFake) || removedBotNames.contains(player.getScoreboardName())) return;
+        if (!(player instanceof EntityPlayerMPFake)) return;
+        if (player.isDeadOrDying()) {
+            forgetBot(server, player);
+            return;
+        }
+        if (removedBotNames.contains(player.getScoreboardName())) return;
         snapshotBot(player);
         saveBotStates(server);
     }
@@ -336,6 +350,22 @@ public final class BotManager {
             state.attacking = interval >= 0;
             state.attackInterval = Math.max(0, interval);
         });
+    }
+
+    public static void setBotSpawnActions(
+            MinecraftServer server, String name, boolean attacking, boolean movingForward) {
+        BotState state = botStates.computeIfAbsent(name, ignored -> new BotState());
+        state.attacking = attacking;
+        state.attackInterval = 0;
+        state.movement = movingForward ? 1 : 0;
+
+        ServerPlayer bot = server.getPlayerList().getPlayer(name);
+        if (!(bot instanceof EntityPlayerMPFake)) return;
+        EntityPlayerActionPack actions = ((ServerPlayerInterface) bot).getActionPack();
+        actions.start(
+                EntityPlayerActionPack.ActionType.ATTACK,
+                attacking ? EntityPlayerActionPack.Action.continuous() : null);
+        actions.setForward(movingForward ? 1 : 0);
     }
 
     public static void setBotUse(ServerPlayer bot, int interval) {
@@ -414,6 +444,7 @@ public final class BotManager {
     public static void onPlayerJoin(ServerPlayer player) {
         MinecraftServer server = CarpetServer.minecraft_server;
         if (player instanceof EntityPlayerMPFake) {
+            removedBotNames.remove(player.getScoreboardName());
             addToTeam(server, player.getScoreboardName());
             restoreBotActions(player);
             if (globalBotSkinUrl != null) {

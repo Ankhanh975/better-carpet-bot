@@ -12,15 +12,18 @@ A [Carpet mod](https://github.com/gnembon/fabric-carpet) extension that adds bet
 
 ## Commands
 
-### `/bot spawn [<name>]`
+### `/bot spawn [<name> [<flags>]]`
 
 Spawns a bot at your position in survival mode. If no name is given, one is auto-generated (`Bot1`, `Bot2`, …). Names must be 1–16 characters, letters/digits/underscores only.
+
+The optional flags are one or two binary digits: the first controls continuous attacking, and the second controls moving forward. Each defaults to `0`. For example, `/bot spawn Alex 11` spawns Alex attacking continuously and moving forward; `/bot spawn Alex 1` enables attacking only.
 
 Names that belong to real players who have ever joined the server cannot be used.
 
 ### `/bot <name> <action>`
 
 Controls a bot (or yourself - targeting your own name works too).
+If the named bot is offline, it is spawned at your position and the command runs once the bot is ready.
 
 | Action | Description |
 |---|---|
@@ -39,6 +42,7 @@ Controls a bot (or yourself - targeting your own name works too).
 | `sprint` / `sprint stop` | Start / stop sprinting |
 | `stop` | Stop all actions |
 | `look <north\|south\|east\|west\|up\|down>` | Look in a cardinal direction |
+| `look at` | Look in the direction you are looking |
 | `look <yaw> <pitch>` | Look at an exact angle |
 | `drop` | Drop current hotbar item (single) |
 | `dropstack` | Drop current hotbar item (full stack) |
@@ -79,7 +83,7 @@ Bots that are online when you leave a world are saved and restored the next time
 
 State is stored separately for each world in `<world save folder>/better-carpet-bots/bots.json`. For example, a Prism Launcher world named `My World` might store it at `minecraft/saves/My World/better-carpet-bots/bots.json`.
 
-If a saved position is missing or shared by multiple bots, the bots are restored in distinct positions near the saved location (or near the joining player when no location was saved), with different orientations. Bots removed with `/bot <name> kill` or `/bots kill` are not restored.
+If a saved position is missing or shared by multiple bots, the bots are restored in distinct positions near the saved location (or near the joining player when no location was saved), with different orientations. Bots removed with `/bot <name> kill` or `/bots kill`, or bots that die, have their saved state deleted and are not restored.
 
 ## Real Player Protection
 
